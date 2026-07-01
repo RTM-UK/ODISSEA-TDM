@@ -1,0 +1,15 @@
+name: TDMEvent
+version: 1.0.0
+main: com.odissea.tdm.TDMEventPlugin
+api-version: '1.21'
+author: Odissea
+description: Manual Team Deathmatch event with crash-safe inventory restoration.
+commands:
+  tdm:
+    description: Manage the Team Deathmatch event.
+    usage: /tdm <start|stop|setspawn|kitset>
+    permission: odissea.tdm.admin
+permissions:
+  odissea.tdm.admin:
+    description: Allows managing the Team Deathmatch event.
+    default: op
