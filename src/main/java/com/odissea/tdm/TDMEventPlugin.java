@@ -19,6 +19,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team.Option;
+import org.bukkit.scoreboard.Team.OptionStatus;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
@@ -227,6 +230,7 @@ public final class TDMEventPlugin extends JavaPlugin implements Listener, Comman
             for (UUID uuid : savedSnapshotUuids) {
                 Player player = Bukkit.getPlayer(uuid);
                 if (player != null && player.isOnline()) {
+                    resetTeamDisplay(player, teamsByPlayer.get(uuid));
                     try {
                         snapshotStore.restoreIfPending(player);
                     } catch (SnapshotRestoreException restoreException) {
@@ -301,6 +305,7 @@ public final class TDMEventPlugin extends JavaPlugin implements Listener, Comman
         kit.apply(player);
         player.setGameMode(GameMode.SURVIVAL);
         player.teleport(spawn);
+        applyTeamDisplay(player, team);
         player.sendMessage(Component.text("You are on the " + team.displayName() + " team.", team.color()));
     }
 
@@ -405,6 +410,7 @@ public final class TDMEventPlugin extends JavaPlugin implements Listener, Comman
             for (UUID uuid : new HashSet<>(participants)) {
                 Player player = Bukkit.getPlayer(uuid);
                 if (player != null && player.isOnline()) {
+                    resetTeamDisplay(player, teamsByPlayer.get(uuid));
                     try {
                         snapshotStore.restoreIfPending(player);
                     } catch (SnapshotRestoreException exception) {
@@ -419,6 +425,40 @@ public final class TDMEventPlugin extends JavaPlugin implements Listener, Comman
             winCheckQueued = false;
             stateLock = false;
         }
+    }
+
+    private void applyTeamDisplay(Player player, Team team) {
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+        String teamName = "odissea_tdm_" + team.name().toLowerCase(Locale.ROOT);
+        org.bukkit.scoreboard.Team scoreboardTeam = scoreboard.getTeam(teamName);
+        if (scoreboardTeam == null) {
+            scoreboardTeam = scoreboard.registerNewTeam(teamName);
+        }
+
+        scoreboardTeam.setColor(team.chatColor());
+        scoreboardTeam.setOption(Option.NAME_TAG_VISIBILITY, OptionStatus.ALWAYS);
+        scoreboardTeam.setCanSeeFriendlyInvisibles(true);
+        scoreboardTeam.addEntry(player.getName());
+        player.playerListName(Component.text(player.getName(), team.color()));
+    }
+
+    private void resetTeamDisplay(Player player, Team team) {
+        if (team == null) {
+            return;
+        }
+
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+        String teamName = "odissea_tdm_" + team.name().toLowerCase(Locale.ROOT);
+        org.bukkit.scoreboard.Team scoreboardTeam = scoreboard.getTeam(teamName);
+        if (scoreboardTeam == null) {
+            return;
+        }
+
+        scoreboardTeam.removeEntry(player.getName());
+        if (scoreboardTeam.getEntries().isEmpty()) {
+            scoreboardTeam.unregister();
+        }
+        player.playerListName(null);
     }
 
     private void restorePendingOnlinePlayers(String reason) {
